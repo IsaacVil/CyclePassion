@@ -1,0 +1,26 @@
+{
+  "name": "mi-moto-mi-pasion-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serverless API for motorcycle parts (Local DynamoDB + serverless-offline)",
+  "scripts": {
+    "db:start": "node scripts/start-dynamodb.js",
+    "db:init": "node scripts/setup-local-db.js",
+    "offline": "serverless offline --httpPort 3001 --lambdaPort 3502",
+    "package:sim": "serverless package",
+    "dev": "serverless offline --httpPort 3001 --lambdaPort 3502"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.758.0",
+    "@aws-sdk/lib-dynamodb": "^3.758.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "dynamodb-local": "^0.0.35",
+    "serverless": "^3.40.0",
+    "serverless-offline": "^13.9.0"
+  }
+}

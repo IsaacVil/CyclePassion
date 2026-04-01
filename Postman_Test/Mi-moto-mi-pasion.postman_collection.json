@@ -1,0 +1,253 @@
+{
+  "info": {
+    "_postman_id": "fd07b10e-ebbd-4f1b-a7a6-02ef5176ec1f",
+    "name": "Mi moto mi pasión – API partes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "44697795"
+  },
+  "item": [
+    {
+      "name": "Workflow 1 – POST /partes (válido)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "const j = pm.response.json();",
+              "pm.test('Tiene part con id', () => pm.expect(j.part).to.have.property('id'));",
+              "pm.test('Campos', () => {",
+              "  pm.expect(j.part.name).to.eql('Amortiguador trasero');",
+              "  pm.expect(j.part.type).to.eql('suspension');",
+              "  pm.expect(j.part.price).to.eql(210);",
+              "  pm.expect(j.part.categories).to.include('kawasaki');",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Amortiguador trasero Isaac Test\",\n  \"type\": \"suspension\",\n  \"price\": 210,\n  \"categories\": [\"kawasaki\", \"ninja\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/partes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 1 – POST /partes (validación falla)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "pm.test('Lista errores', () => {",
+              "  const j = pm.response.json();",
+              "  pm.expect(j.errors).to.be.an('array').that.is.not.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"\",\n  \"type\": \"x\",\n  \"price\": -1,\n  \"categories\": []\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/partes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GET /partes?tipo=motor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Solo tipo motor', () => {",
+              "  j.parts.forEach(p => pm.expect(p.type.toLowerCase()).to.eql('motor'));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/partes?tipo=motor",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ],
+          "query": [
+            {
+              "key": "tipo",
+              "value": "motor"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GET /partes?categorias=kawasaki,yamaha",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Cada parte coincide con alguna categoría', () => {",
+              "  const cats = ['honda','yamaha'];",
+              "  j.parts.forEach(p => {",
+              "    const hit = p.categories.some(c => cats.includes(c.toLowerCase()));",
+              "    pm.expect(hit).to.be.true;",
+              "  });",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/partes?categorias=kawasaki,yamaha",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ],
+          "query": [
+            {
+              "key": "categorias",
+              "value": "kawasaki,yamaha"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GET headers x-type y x-categories",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-type",
+            "value": "frenos"
+          },
+          {
+            "key": "x-categories",
+            "value": "cb500"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/partes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GET sin filtros",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/partes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+service: mi-moto-mi-pasion
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: dev
+  region: us-east-1
+  environment:
+    PARTES_TABLE: ${self:custom.tableName}
+  httpApi:
+    cors: true
+
+custom:
+  tableName: moto-partes-${sls:stage}
+  serverless-offline:
+    # If 3000/3002 are busy (another `serverless offline` or app), use these ports
+    httpPort: 3001
+    lambdaPort: 3502
+    useChildProcesses: true
+
+functions:
+  createParte:
+    handler: src/handlers/createParte.handler
+    events:
+      - httpApi:
+          path: /partes
+          method: POST
+  listPartes:
+    handler: src/handlers/listPartes.handler
+    events:
+      - httpApi:
+          path: /partes
+          method: GET
+
+resources:
+  Resources:
+    PartesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+plugins:
+  - serverless-offline
