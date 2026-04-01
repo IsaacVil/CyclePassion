@@ -33,3 +33,27 @@ It will execute all the code without real AWS access.
 * Step 2. The header may contain type, categories.
 * Step 3. The endpoint will return a response of all the parts in DynamoDB that match the type of the categories.
 
+---
+## RESTAPI Testing (for workflow 1 and 2)
+* It will use Postman for HTTP request and response.
+* In /Postman_Test will have QA test for both workflows
+
+---
+## Layered design
+* The API serveless is based on an layered architecture.
+* The Business Logic layer: Takes care of data type validations on the get and set workflows.
+* Repositories layer: Takes care of the communication between the DB.
+* Model layer: Defines the structure of a motorcycle part
+
+---
+## Scripts
+* It will use local AWS SDK and plugins like serverless-online for the scripting.
+* It will have offline serverless scripts for devs.
+* It will have a simulated deployment script for production.
+
+---
+## Paradigm
+* Imperative: We give detailed instructions to achieve a result.
+* Define pasos explícitos de ejecución (recibir request, validar, consultar/insertar, responder).
+* Define explicit steps of execution (validation, consult/insert, response, request).
+* It has secundary direct effects (read/write on DynamoDB).
