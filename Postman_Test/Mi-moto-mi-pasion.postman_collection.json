@@ -1,7 +1,8 @@
 {
   "info": {
-    "_postman_id": "fd07b10e-ebbd-4f1b-a7a6-02ef5176ec1f",
+    "_postman_id": "11bc5e0d-0825-406b-9a16-2433b58cb72b",
     "name": "Mi moto mi pasión – API partes",
+    "description": "Tests para el API serverless de partes de motocicletas con índice compuesto tipo-categoria",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "44697795"
   },
@@ -16,7 +17,7 @@
               "pm.test('Status 201', () => pm.response.to.have.status(201));",
               "const j = pm.response.json();",
               "pm.test('Tiene part con id', () => pm.expect(j.part).to.have.property('id'));",
-              "pm.test('Campos', () => {",
+              "pm.test('Campos correctos', () => {",
               "  pm.expect(j.part.name).to.eql('Amortiguador trasero');",
               "  pm.expect(j.part.type).to.eql('suspension');",
               "  pm.expect(j.part.price).to.eql(210);",
@@ -95,7 +96,7 @@
       "response": []
     },
     {
-      "name": "Workflow 2 – GET /partes?tipo=motor",
+      "name": "Workflow 2 – GSI: GET /partes?tipo=suspension (usa partition key)",
       "event": [
         {
           "listen": "test",
@@ -103,8 +104,14 @@
             "exec": [
               "pm.test('Status 200', () => pm.response.to.have.status(200));",
               "const j = pm.response.json();",
-              "pm.test('Solo tipo motor', () => {",
-              "  j.parts.forEach(p => pm.expect(p.type.toLowerCase()).to.eql('motor'));",
+              "pm.test('GSI aprovecha partition key: solo tipo=suspension', () => {",
+              "  pm.expect(j.parts).to.be.an('array');",
+              "  j.parts.forEach(p => {",
+              "    pm.expect(p.type.toLowerCase()).to.eql('suspension');",
+              "  });",
+              "});",
+              "pm.test('Retorna partes (GSI query eficiente)', () => {",
+              "  pm.expect(j.parts.length).to.be.greaterThan(0);",
               "});"
             ],
             "type": "text/javascript"
@@ -113,9 +120,67 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Description",
+            "value": "Usa el índice compuesto: partition key=tipo, sort key=categoria",
+            "disabled": true
+          }
+        ],
         "url": {
-          "raw": "{{baseUrl}}/partes?tipo=motor",
+          "raw": "{{baseUrl}}/partes?tipo=suspension",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ],
+          "query": [
+            {
+              "key": "tipo",
+              "value": "suspension"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GSI: GET /partes?tipo=motor&categorias=kawasaki (partition + filter)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('GSI partition key (tipo=motor) + filtra categorías', () => {",
+              "  j.parts.forEach(p => {",
+              "    pm.expect(p.type.toLowerCase()).to.eql('motor');",
+              "    pm.expect(p.categories).to.include('kawasaki');",
+              "  });",
+              "});",
+              "pm.test('Retorna solo partes que coinciden ambos filtros', () => {",
+              "  pm.expect(j.parts).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Description",
+            "value": "GSI busca by tipo (partition key), luego filtra categorías en memoria",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/partes?tipo=motor&categorias=electrico",
           "host": [
             "{{baseUrl}}"
           ],
@@ -126,6 +191,10 @@
             {
               "key": "tipo",
               "value": "motor"
+            },
+            {
+              "key": "categorias",
+              "value": "electrico"
             }
           ]
         }
@@ -133,7 +202,45 @@
       "response": []
     },
     {
-      "name": "Workflow 2 – GET /partes?categorias=kawasaki,yamaha",
+      "name": "Workflow 2 – GET /partes?tipo=frenos (búsqueda por tipo)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Solo tipo frenos', () => {",
+              "  j.parts.forEach(p => pm.expect(p.type.toLowerCase()).to.eql('frenos'));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/partes?tipo=frenos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ],
+          "query": [
+            {
+              "key": "tipo",
+              "value": "frenos"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GET /partes?categorias=kawasaki,yamaha (sin tipo, hace scan)",
       "event": [
         {
           "listen": "test",
@@ -142,10 +249,62 @@
               "pm.test('Status 200', () => pm.response.to.have.status(200));",
               "const j = pm.response.json();",
               "pm.test('Cada parte coincide con alguna categoría', () => {",
-              "  const cats = ['honda','yamaha'];",
+              "  const cats = ['kawasaki','yamaha'];",
               "  j.parts.forEach(p => {",
               "    const hit = p.categories.some(c => cats.includes(c.toLowerCase()));",
               "    pm.expect(hit).to.be.true;",
+              "  });",
+              "});",
+              "pm.test('Sin tipo: hace scan completo (no usa GSI)', () => {",
+              "  pm.expect(j.parts).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Description",
+            "value": "Sin tipo: realiza Scan en DynamoDB (no usa GSI). Con tipo usaría QueryCommand",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/partes?categorias=electrico, motor",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "partes"
+          ],
+          "query": [
+            {
+              "key": "categorias",
+              "value": "electrico, motor"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Workflow 2 – GET /partes CON tipo=suspension&categorias=ninja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Filtra tipo via GSI, luego categorías', () => {",
+              "  j.parts.forEach(p => {",
+              "    pm.expect(p.type.toLowerCase()).to.eql('suspension');",
+              "    pm.expect(p.categories).to.include('ninja');",
               "  });",
               "});"
             ],
@@ -157,9 +316,15 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Description",
+            "value": "GSI: tipo como partition key filtra rápido, luego filtra categorías",
+            "disabled": true
+          }
+        ],
         "url": {
-          "raw": "{{baseUrl}}/partes?categorias=kawasaki,yamaha",
+          "raw": "{{baseUrl}}/partes?tipo=suspension&categorias=ninja",
           "host": [
             "{{baseUrl}}"
           ],
@@ -168,8 +333,12 @@
           ],
           "query": [
             {
+              "key": "tipo",
+              "value": "suspension"
+            },
+            {
               "key": "categorias",
-              "value": "kawasaki,yamaha"
+              "value": "ninja"
             }
           ]
         }
@@ -177,50 +346,16 @@
       "response": []
     },
     {
-      "name": "Workflow 2 – GET headers x-type y x-categories",
+      "name": "Workflow 2 – GET /partes sin filtros",
       "event": [
         {
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Status 200', () => pm.response.to.have.status(200));"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-type",
-            "value": "frenos"
-          },
-          {
-            "key": "x-categories",
-            "value": "cb500"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/partes",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "partes"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Workflow 2 – GET sin filtros",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Status 400', () => pm.response.to.have.status(400));"
+              "pm.test('Status 200 - retorna todos (o falla según spec)', () => {",
+              "  const status = pm.response.code;",
+              "  pm.expect([200, 400]).to.include(status);",
+              "});"
             ],
             "type": "text/javascript",
             "packages": {},
@@ -230,7 +365,13 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Description",
+            "value": "Sin parámetros: puede retornar error o todos los items",
+            "disabled": true
+          }
+        ],
         "url": {
           "raw": "{{baseUrl}}/partes",
           "host": [

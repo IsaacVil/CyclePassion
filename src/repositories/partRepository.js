@@ -2,6 +2,7 @@
 
 const {
   PutCommand,
+  QueryCommand,
   ScanCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const { getDocumentClient } = require('../lib/dynamoClient');
@@ -34,25 +35,46 @@ async function putPart(client, part) {
 }
 
 /**
- * Scan table and apply optional filters in memory for small local datasets.
+ * Query using tipo-categoria GSI for efficient filtering.
+ * Falls back to scan if no tipo is specified.
  * @param {import('@aws-sdk/lib-dynamodb').DynamoDBDocumentClient} client
  * @param {{ tipo?: string, categorias?: string[] }} filters
  * @returns {Promise<import('../models/part').PartRecord[]>}
  */
 async function scanParts(client, filters) {
-  const cmd = new ScanCommand({ TableName: getTableName() });
-  const out = await client.send(cmd);
-  const items = (out.Items || []).map((item) => fromDynamoItem(item));
-
   const tipo = filters.tipo ? String(filters.tipo).toLowerCase() : '';
   const categorias = (filters.categorias || [])
     .map((c) => String(c).toLowerCase())
     .filter(Boolean);
 
+  let out;
+
+  if (tipo) {
+    // Use the GSI partition key that matches the stored field name.
+    const cmd = new QueryCommand({
+      TableName: getTableName(),
+      IndexName: 'tipo-categoria-index',
+      KeyConditionExpression: '#type = :type',
+      ExpressionAttributeNames: {
+        '#type': 'type',
+      },
+      ExpressionAttributeValues: {
+        ':type': tipo,
+      },
+    });
+    const result = await client.send(cmd);
+    out = result.Items || [];
+  } else {
+    // Fall back to full table scan when no tipo filter
+    const cmd = new ScanCommand({ TableName: getTableName() });
+    const result = await client.send(cmd);
+    out = result.Items || [];
+  }
+
+  const items = out.map((item) => fromDynamoItem(item));
+
+  // Filter by categories in memory (since categories is an array)
   return items.filter((p) => {
-    if (tipo && p.type !== tipo) {
-      return false;
-    }
     if (categorias.length === 0) {
       return true;
     }
@@ -66,3 +88,4 @@ module.exports = {
   scanParts,
   getTableName,
 };
+

@@ -9,7 +9,11 @@ process.env.PARTES_TABLE = process.env.PARTES_TABLE || 'moto-partes-dev';
 process.env.DYNAMODB_ENDPOINT = process.env.DYNAMODB_ENDPOINT || 'http://localhost:8000';
 process.env.AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-const { CreateTableCommand, DescribeTableCommand } = require('@aws-sdk/client-dynamodb');
+const {
+  CreateTableCommand,
+  DeleteTableCommand,
+  DescribeTableCommand,
+} = require('@aws-sdk/client-dynamodb');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
@@ -57,29 +61,88 @@ const SEED_PARTS = [
 ];
 
 async function ensureTable() {
+  let exists = false;
   try {
-    await lowLevel.send(new DescribeTableCommand({ TableName: tableName }));
-    return;
+    const current = await lowLevel.send(new DescribeTableCommand({ TableName: tableName }));
+    exists = true;
+
+    const indexes = current.Table?.GlobalSecondaryIndexes || [];
+    const hasTipoCategoriaIndex = indexes.some((index) => {
+      const keySchema = index.KeySchema || [];
+      return index.IndexName === 'tipo-categoria-index'
+        && keySchema.length === 1
+        && keySchema[0].AttributeName === 'type'
+        && keySchema[0].KeyType === 'HASH';
+    });
+
+    if (hasTipoCategoriaIndex) {
+      await waitForTableReady();
+      return;
+    }
+
+    console.log(`Table ${tableName} exists without tipo-categoria-index, recreating it.`);
+    await lowLevel.send(new DeleteTableCommand({ TableName: tableName }));
   } catch (e) {
     if (e && e.name !== 'ResourceNotFoundException') {
       throw e;
     }
   }
 
+  if (exists) {
+    for (let i = 0; i < 30; i += 1) {
+      try {
+        await lowLevel.send(new DescribeTableCommand({ TableName: tableName }));
+      } catch (e) {
+        if (e && e.name === 'ResourceNotFoundException') {
+          break;
+        }
+        throw e;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
   await lowLevel.send(
     new CreateTableCommand({
       TableName: tableName,
-      BillingMode: 'PAY_PER_REQUEST',
-      AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+      BillingMode: 'PROVISIONED',
+      ProvisionedThroughput: {
+        ReadCapacityUnits: 5,
+        WriteCapacityUnits: 5,
+      },
+      AttributeDefinitions: [
+        { AttributeName: 'id', AttributeType: 'S' },
+        { AttributeName: 'type', AttributeType: 'S' },
+      ],
       KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: 'tipo-categoria-index',
+          KeySchema: [
+            { AttributeName: 'type', KeyType: 'HASH' },
+          ],
+          Projection: { ProjectionType: 'ALL' },
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5,
+          },
+        },
+      ],
     }),
   );
 
+  await waitForTableReady();
+}
+
+async function waitForTableReady() {
   let ready = false;
-  for (let i = 0; i < 30 && !ready; i += 1) {
+  for (let i = 0; i < 60 && !ready; i += 1) {
     await new Promise((r) => setTimeout(r, 500));
     const d = await lowLevel.send(new DescribeTableCommand({ TableName: tableName }));
-    ready = d.Table?.TableStatus === 'ACTIVE';
+    const tableReady = d.Table?.TableStatus === 'ACTIVE';
+    const indexStates = d.Table?.GlobalSecondaryIndexes || [];
+    const indexesReady = indexStates.every((index) => index.IndexStatus === 'ACTIVE');
+    ready = tableReady && indexesReady;
   }
 }
 

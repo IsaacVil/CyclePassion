@@ -17,8 +17,9 @@ It will execute all the code without real AWS access.
 ## Database Architecture
 * Local DynamoDB will be the database engine of choice for the project
 * It will contain a small seeded dataset loaded automatically
-* Structure: Pk (uuid), Attributes: nombre (string), tipo (string), precio (float), categorias (array).
-
+* Structure: Pk id (uuid), Attributes: nombre (string), tipo (string), precio (float), categorias (array).
+* Primary key id, Tipo, Categoria doesnt have a Sort key only a Partition key, meaning an item is unique by its id.
+* tipo-categoria (compose index) uses a Partition-Sort key to find more quickly the data, it orders the bucket (of data equal to that partition key) based on the sort key on a tree.
 
 
 ---

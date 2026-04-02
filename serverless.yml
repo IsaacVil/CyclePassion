@@ -40,13 +40,28 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:custom.tableName}
-        BillingMode: PAY_PER_REQUEST
+        BillingMode: PROVISIONED
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
         AttributeDefinitions:
           - AttributeName: id
+            AttributeType: S
+          - AttributeName: type
             AttributeType: S
         KeySchema:
           - AttributeName: id
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: tipo-categoria-index
+            KeySchema:
+              - AttributeName: type
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
 
 plugins:
   - serverless-offline
