@@ -65,13 +65,13 @@ Cursor Claude 3.5 Sonnet
 
 ---
 ## Prompt
-Role: Implement a functional serverless API system for motorcycle parts exchange in the repository of Mi moto mi pasión using the Markdown.md.
+**Role**: Implement a functional serverless API system for motorcycle parts exchange in the repository of Mi moto mi pasión using the Markdown.md.
 
-Instructions: Implement a functional system for the speedboats repository using the instructions of the detailed Markdown.md and the project folder structure in it.
+**Instructions**: Implement a functional system for the speedboats repository using the instructions of the detailed Markdown.md and the project folder structure in it.
 
-Context: Markdown.md and Ejercicio: API serverless para mercado de intercambio de partes de motos. Construyan un sistema donde usuarios publiquen partes de motos y otros puedan consultarlas por tipo o categoría, usando funciones desacopladas y simulando un entorno serverless local.  Ejercicio en parejas.
+**Context**: Markdown.md and Ejercicio: API serverless para mercado de intercambio de partes de motos. Construyan un sistema donde usuarios publiquen partes de motos y otros puedan consultarlas por tipo o categoría, usando funciones desacopladas y simulando un entorno serverless local.  Ejercicio en parejas.
 
-Arquitectura: Serverless con Lambda functions + REST
+**Arquitectura**: Serverless con Lambda functions + REST
 Base de datos: DynamoDB local
 Capas: business logic, repositories, model
 Uso de AWS SDK local y plugins como serverless-offline
@@ -82,4 +82,4 @@ Scripts: serverless offline para dev y serverless deploy simulado para prod
 Datos mínimos en DynamoDB local
 Todo ejecutándose localmente sin acceso a AWS real
 
-Output : Functional serverless API system of the motorcycle parts repository ready to run locally, including Lambda functions, local DynamoDB configuration, seeded data, working REST endpoints (POST /partes and GET /partes), Postman tests, and scripts for execution using serverless-offline.
+**Output**: Functional serverless API system of the motorcycle parts repository ready to run locally, including Lambda functions, local DynamoDB configuration, seeded data, working REST endpoints (POST /partes and GET /partes), Postman tests, and scripts for execution using serverless-offline.
